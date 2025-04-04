@@ -14,7 +14,11 @@ struct PokedexListView: View {
     @State private var errorMessage: String? = nil
     @State private var pokemonList: [PokemonListItem] = []
     @State private var typeFilter: String? = nil
-    @State private var pokemonTypes: [String] = []
+    @State private var pokemonTypes: [String] = [
+        "normal", "fire", "water", "electric", "grass", "ice",
+        "fighting", "poison", "ground", "flying", "psychic", "bug",
+        "rock", "ghost", "dragon", "dark", "steel", "fairy"
+    ]
     @State private var pokemonTypeCache: [Int: [String]] = [:]
     
     var filteredPokemon: [PokemonListItem] {
@@ -129,8 +133,13 @@ struct PokedexListView: View {
         errorMessage = nil
         
         do {
-            let response = try await PokemonAPIService.shared.fetchPokemonList(limit: 250)
+            let response = try await PokemonAPIService.shared.fetchPokemonList(limit: 300)
             pokemonList = response.results
+            
+            let initialBatch = pokemonList.prefix(5)
+            for pokemon in initialBatch {
+                await loadPokemonType(for: pokemon)
+            }
         }
         catch let apiError as APIError {
                 errorMessage = apiError.customErrorMessage
@@ -143,6 +152,7 @@ struct PokedexListView: View {
         
         isLoading = false
     }
+    
     func loadPokemonType(for pokemon: PokemonListItem) async {
         if pokemonTypeCache[pokemon.id] != nil {
             return
@@ -153,12 +163,6 @@ struct PokedexListView: View {
             let types = details.types.map { $0.type.name }
             
             pokemonTypeCache[pokemon.id] = types
-            
-            for type in types {
-                if !pokemonTypes.contains(type) {
-                    pokemonTypes.append(type)
-                }
-            }
         } catch {
             print("Error loading type for \(pokemon.name): \(error)")
         }
