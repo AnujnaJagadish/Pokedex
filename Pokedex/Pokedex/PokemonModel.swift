@@ -2,7 +2,7 @@
 //  PokemonModel.swift
 //  Pokedex
 //
-//  Created by Anujna Ashwath on 4/3/25.
+//  Created by Anujna Ashwath on 4/1/25.
 //
 
 import Foundation
