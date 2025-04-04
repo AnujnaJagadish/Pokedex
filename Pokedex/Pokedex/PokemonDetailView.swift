@@ -178,7 +178,12 @@ struct PokemonDetailView: View {
         
         do {
             pokemon = try await PokemonAPIService.shared.fetchPokemonDetail(id: pokemonId)
-        } catch {
+        }
+        catch let apiError as APIError {
+                errorMessage = apiError.customErrorMessage
+                print("Debug error: \(apiError)")
+            }
+        catch {
             errorMessage = "We couldn't load this Pokémon's details. Please try again."
         }
         

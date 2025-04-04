@@ -12,6 +12,29 @@ enum APIError: Error {
     case invalidResponse
     case networkError(Error)
     case decodingError(Error)
+    
+    var customErrorMessage: String {
+        switch self {
+        case .invalidURL:
+            return "We couldn't connect to the Pokémon database. Please try again later."
+        case .invalidResponse:
+            return "The Pokémon server isn't responding correctly. Please try again later."
+        case .decodingError:
+            return "We couldn't understand the data from the Pokémon database. Please try again later."
+        case .networkError(let error):
+            if let urlError = error as? URLError {
+                switch urlError.code {
+                case .notConnectedToInternet:
+                    return "You're not connected to the internet. Please check your connection and try again."
+                case .timedOut:
+                    return "The connection timed out. Please try again later."
+                default:
+                    return "There was a problem with your internet connection. Please try again."
+                }
+            }
+            return "There was a problem connecting to the Pokémon database. Please try again later."
+        }
+    }
 }
 
 class PokemonAPIService {
@@ -52,23 +75,11 @@ class PokemonAPIService {
             return try decoder.decode(responseType, from: data)
         } catch let error as DecodingError {
             throw APIError.decodingError(error)
+        } catch let error as APIError {
+            throw error
         } catch {
             throw APIError.networkError(error)
         }
     }
 }
 
-extension PokemonAPIService {
-    func fetchPokemonSpecies(id: Int) async throws -> PokemonSpecies {
-        let endpoint = "/pokemon-species/\(id)"
-        return try await performRequest(endpoint: endpoint, responseType: PokemonSpecies.self)
-    }
-    
-    private func extractIdFromUrl(_ url: String) -> Int {
-        let components = url.split(separator: "/")
-        if let idString = components.last, let id = Int(idString) {
-            return id
-        }
-        return 0
-    }
-}

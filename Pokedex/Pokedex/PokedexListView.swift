@@ -131,9 +131,15 @@ struct PokedexListView: View {
         do {
             let response = try await PokemonAPIService.shared.fetchPokemonList(limit: 250)
             pokemonList = response.results
-        } catch {
-            errorMessage = error.localizedDescription
         }
+        catch let apiError as APIError {
+                errorMessage = apiError.customErrorMessage
+                print("Debug error: \(apiError)")
+            }
+        catch {
+                errorMessage = "Something unexpected happened. Please try again later."
+                print("Unexpected error: \(error)")
+            }
         
         isLoading = false
     }
