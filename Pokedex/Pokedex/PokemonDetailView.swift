@@ -88,18 +88,18 @@ struct PokemonDetailView: View {
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(12)
                         
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text("Stats")
                                 .font(.headline)
-                                .padding(.bottom, 4)
+                                .padding(.bottom, 7)
                             
                             ForEach(pokemon.stats, id: \.stat.name) { stat in
                                 HStack {
                                     Text(stat.stat.name.capitalized)
-                                        .frame(width: 100, alignment: .leading)
+                                        .frame(width: 70, alignment: .leading)
                                     Text("\(stat.baseStat)")
                                         .frame(width: 40, alignment: .trailing)
-                                    ProgressView(value: Double(stat.baseStat), total: 255)
+                                    ProgressView(value: Double(stat.baseStat), total: 100)
                                         .progressViewStyle(LinearProgressViewStyle(tint: statColor(for: stat.baseStat)))
                                 }
                             }
