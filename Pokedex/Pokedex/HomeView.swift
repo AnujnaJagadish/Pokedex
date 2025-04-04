@@ -40,10 +40,7 @@ struct HomeView: View
                     Spacer()
                 }
             }
-            .frame(maxWidth: .infinity)
-            .background(Color(UIColor.systemGroupedBackground))
-            .toolbar(.hidden, for: .navigationBar)
-            .edgesIgnoringSafeArea(.bottom)
+            
         }
     }
 }
