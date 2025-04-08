@@ -4,23 +4,27 @@
 //
 //  Created by Anujna Ashwath on 4/3/25.
 //
-
 import SwiftUI
 import SwiftData
 
 struct PokemonDetailView: View {
     let pokemonId: Int
+    let viewModel: PokemonDetailViewModel
+    
     @State private var pokemon: PokemonDetail?
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
-    
+    @State private var selectedTab = 0
+    @State private var evolutionChain: [PokemonEvolution] = []
+    @State private var isLoadingEvolution = false
+    @State private var evolutionError: String? = nil
     @State private var showingCatchAlert = false
     @State private var showingFavoriteAlert = false
     
-    @State private var selectedTab = 0
-    @State private var isLoadingEvolution = false
-    @State private var evolutionError :String? = nil
-    @State private var evolutionChain: [PokemonEvolution] = []
+    init(pokemonId: Int) {
+        self.pokemonId = pokemonId
+        self.viewModel = PokemonDetailViewModel(pokemonId: pokemonId)
+    }
     
     var body: some View {
         ScrollView {
@@ -54,7 +58,7 @@ struct PokemonDetailView: View {
                                 }
                             }
                         }
-                        
+
                         Text(pokemon.name.capitalized)
                             .font(.title)
                             .bold()
@@ -75,6 +79,7 @@ struct PokemonDetailView: View {
                             }
                         }
                         
+
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Abilities")
                                 .font(.headline)
@@ -93,26 +98,22 @@ struct PokemonDetailView: View {
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(12)
                         
-                        Picker("Information", selection: $selectedTab)
-                        {
+                        Picker("Information", selection: $selectedTab) {
                             Text("Stats").tag(0)
                             Text("Evolution").tag(1)
                         }
                         .pickerStyle(SegmentedPickerStyle())
                         .padding(.horizontal, 8)
                         
-                        if selectedTab == 0
-                        {
+                        if selectedTab == 0 {
                             statsView(for: pokemon)
-                        }
-                        else
-                        {
+                        } else {
                             evolutionChainView()
                         }
                         
-                        
                         HStack {
                             Button(action: {
+                                viewModel.catchPokemon(pokemon: pokemon)
                                 showingCatchAlert = true
                             }) {
                                 Text("Catch")
@@ -125,6 +126,7 @@ struct PokemonDetailView: View {
                             }
                             
                             Button(action: {
+                                viewModel.toggleFavorite(pokemon: pokemon)
                                 showingFavoriteAlert = true
                             }) {
                                 HStack {
@@ -172,10 +174,9 @@ struct PokemonDetailView: View {
         }
     }
     
-    private func statsView(for Pokemon: PokemonDetail) -> some View
-    {
+    private func statsView(for pokemon: PokemonDetail) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(Pokemon.stats, id: \.stat.name) { stat in
+            ForEach(pokemon.stats, id: \.stat.name) { stat in
                 HStack {
                     Text(stat.stat.name.capitalized)
                         .frame(width: 70, alignment: .leading)
@@ -234,7 +235,7 @@ struct PokemonDetailView: View {
                         ForEach(evolutionChain, id: \.uniqueId) { evolution in
                             VStack {
                                 if let imageURL = evolution.imageURL,
-                                                                  let url = URL(string: imageURL)  {
+                                   let url = URL(string: imageURL) {
                                     AsyncImage(url: url) { phase in
                                         if let image = phase.image {
                                             image
@@ -291,39 +292,36 @@ struct PokemonDetailView: View {
         }
     }
     
-    func loadPokemonDetails() async {
+    private func loadPokemonDetails() async {
         isLoading = true
         errorMessage = nil
         
         do {
-            pokemon = try await PokemonAPIService.shared.fetchPokemonDetail(id: pokemonId)
-        }
-        catch let apiError as APIError {
-                errorMessage = apiError.customErrorMessage
-                print("Debug error: \(apiError)")
-            }
-        catch {
+            pokemon = try await viewModel.fetchPokemonDetails()
+        } catch let apiError as APIError {
+            errorMessage = apiError.customErrorMessage
+            print("Debug error: \(apiError)")
+        } catch {
             errorMessage = "We couldn't load this Pokémon's details. Please try again."
         }
         
         isLoading = false
     }
     
-    func loadEvolutionChain() async {
+    private func loadEvolutionChain() async {
         guard let pokemon = pokemon else { return }
         
         isLoadingEvolution = true
         evolutionError = nil
         
         do {
-            evolutionChain = try await PokemonAPIService.shared.getEvolutionChain(for: pokemon.id)
+            evolutionChain = try await viewModel.fetchEvolutionChain(for: pokemon.id)
         } catch {
             evolutionError = "Error: \(error.localizedDescription)"
         }
         
         isLoadingEvolution = false
     }
-    
 }
 
 #Preview {

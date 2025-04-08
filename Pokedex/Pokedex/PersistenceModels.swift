@@ -28,3 +28,16 @@ class CaughtPokemon
         self.dateAdded = Date()
     }
 }
+
+@Model
+class PokemonTeam {
+    var name: String
+    var pokemonIDs: [Int]
+    var dateCreated: Date
+    
+    init(name: String, pokemonIDs: [Int] = []) {
+        self.name = name
+        self.pokemonIDs = pokemonIDs
+        self.dateCreated = Date()
+    }
+}
