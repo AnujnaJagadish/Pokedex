@@ -1,7 +1,7 @@
-### Pokedex
+## Pokedex
 A Swift based Pokémon App
 
-## Introduction
+### Introduction
 Pokémon companion app that allows users to browse the complete Pokédex, search and
 filter Pokémon by various attributes, and maintain a personal collection of caught and
 favorite Pokémon with custom team-building capabilities.
@@ -10,8 +10,8 @@ SwiftData
 • Each caught Pokémon will store the complete data model or reference ID for quick
 retrieval
 
-## API: https://pokeapi.co/api
-# UI: 
+### API: https://pokeapi.co/api
+### UI: 
     So far:
     • Tab1 - Home Dashboard
         ◦ Quick access buttons to main app functions
@@ -22,6 +22,9 @@ retrieval
             ▪ Shows basic information such as Id, name
             ▪ Selecting a Pokémon navigates to Stack2B
         ◦ Stack2B: Detailed Pokémon information using GET /api/v2/pokemon/{id}
-            ▪ Shows comprehensive stats, abilities, and type information
+            ▪ Have 2 tabs Stats & Evolution
+            ▪ Stats tab shows comprehensive stats, abilities, and type information
+            ▪ Evolution tab shows evolution chain, evolutionFrom -> evolutionTo
+            ▪ "Favorite" button to mark as favorite
             ▪ "Catch" button to add to collection
             ▪ "Favorite" button to mark as favorite

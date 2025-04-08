@@ -81,3 +81,50 @@ struct NamedAPIResource: Codable {
     let url: String
 }
 
+struct PokemonSpecies: Codable {
+    let evolutionChain: EvolutionChainReference
+    
+    enum CodingKeys: String, CodingKey {
+        case evolutionChain = "evolution_chain"
+    }
+}
+
+struct EvolutionChainReference: Codable {
+    let url: String
+}
+
+struct EvolutionChain: Codable {
+    let chain: ChainLink
+}
+
+struct ChainLink: Codable {
+    let species: NamedAPIResource
+    let evolutionDetails: [EvolutionDetail]
+    let evolvesTo: [ChainLink]
+    
+    enum CodingKeys: String, CodingKey {
+        case species
+        case evolutionDetails = "evolution_details"
+        case evolvesTo = "evolves_to"
+    }
+}
+
+struct EvolutionDetail: Codable {
+    let minLevel: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case minLevel = "min_level"
+    }
+}
+
+struct PokemonEvolution: Identifiable {
+    let id: Int
+    let name: String
+    let imageURL: String?
+    let level: Int
+
+    var uniqueId: String {
+        "\(id)-\(name)"
+    }
+}
+

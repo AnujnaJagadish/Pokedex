@@ -38,7 +38,7 @@ enum APIError: Error {
 }
 
 class PokemonAPIService {
-    static let shared = PokemonAPIService()
+    @MainActor static let shared = PokemonAPIService()
     private let baseURL = "https://pokeapi.co/api/v2"
     
     private init() {}
@@ -80,6 +80,80 @@ class PokemonAPIService {
         } catch {
             throw APIError.networkError(error)
         }
+    }
+}
+
+extension PokemonAPIService {
+    func fetchPokemonSpecies(id: Int) async throws -> PokemonSpecies {
+        let endpoint = "/pokemon-species/\(id)"
+        return try await performRequest(endpoint: endpoint, responseType: PokemonSpecies.self)
+    }
+    
+    func fetchEvolutionChain(url: String) async throws -> EvolutionChain {
+        guard let url = URL(string: url) else {
+            throw APIError.invalidURL
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  200...299 ~= httpResponse.statusCode else {
+                throw APIError.invalidResponse
+            }
+            
+            let decoder = JSONDecoder()
+            return try decoder.decode(EvolutionChain.self, from: data)
+        } catch let error as DecodingError {
+            throw APIError.decodingError(error)
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+    
+    func getEvolutionChain(for pokemonId: Int) async throws -> [PokemonEvolution] {
+        let species = try await fetchPokemonSpecies(id: pokemonId)
+        
+        let evolutionChain = try await fetchEvolutionChain(url: species.evolutionChain.url)
+        
+        var evolutions: [PokemonEvolution] = []
+        
+        let baseSpecies = evolutionChain.chain.species
+        let baseId = extractIdFromUrl(baseSpecies.url)
+        evolutions.append(PokemonEvolution(
+            id: baseId,
+            name: baseSpecies.name,
+            imageURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/\(baseId).png",
+            level: 0
+        ))
+        
+        processEvolutions(chainLink: evolutionChain.chain, evolutions: &evolutions)
+        
+        return evolutions
+    }
+    
+    private func processEvolutions(chainLink: ChainLink, evolutions: inout [PokemonEvolution]) {
+        for evolution in chainLink.evolvesTo {
+            let evoId = extractIdFromUrl(evolution.species.url)
+            let level = evolution.evolutionDetails.first?.minLevel ?? 0
+            
+            evolutions.append(PokemonEvolution(
+                id: evoId,
+                name: evolution.species.name,
+                imageURL: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/\(evoId).png",
+                level: level
+            ))
+            
+            processEvolutions(chainLink: evolution, evolutions: &evolutions)
+        }
+    }
+    
+    private func extractIdFromUrl(_ url: String) -> Int {
+        let components = url.split(separator: "/")
+        if let idString = components.last, let id = Int(idString) {
+            return id
+        }
+        return 0
     }
 }
 

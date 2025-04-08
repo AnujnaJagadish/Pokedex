@@ -17,6 +17,11 @@ struct PokemonDetailView: View {
     @State private var showingCatchAlert = false
     @State private var showingFavoriteAlert = false
     
+    @State private var selectedTab = 0
+    @State private var isLoadingEvolution = false
+    @State private var evolutionError :String? = nil
+    @State private var evolutionChain: [PokemonEvolution] = []
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -88,25 +93,23 @@ struct PokemonDetailView: View {
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(12)
                         
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Stats")
-                                .font(.headline)
-                                .padding(.bottom, 7)
-                            
-                            ForEach(pokemon.stats, id: \.stat.name) { stat in
-                                HStack {
-                                    Text(stat.stat.name.capitalized)
-                                        .frame(width: 70, alignment: .leading)
-                                    Text("\(stat.baseStat)")
-                                        .frame(width: 40, alignment: .trailing)
-                                    ProgressView(value: Double(stat.baseStat), total: 100)
-                                        .progressViewStyle(LinearProgressViewStyle(tint: statColor(for: stat.baseStat)))
-                                }
-                            }
+                        Picker("Information", selection: $selectedTab)
+                        {
+                            Text("Stats").tag(0)
+                            Text("Evolution").tag(1)
                         }
-                        .padding(8)
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(12)
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding(.horizontal, 8)
+                        
+                        if selectedTab == 0
+                        {
+                            statsView(for: pokemon)
+                        }
+                        else
+                        {
+                            evolutionChainView()
+                        }
+                        
                         
                         HStack {
                             Button(action: {
@@ -160,6 +163,122 @@ struct PokemonDetailView: View {
         } message: {
             Text("\(pokemon?.name.capitalized ?? "The Pokémon") has been added to your favorites!")
         }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            if newValue == 1 && evolutionChain.isEmpty && evolutionError == nil {
+                Task {
+                    await loadEvolutionChain()
+                }
+            }
+        }
+    }
+    
+    private func statsView(for Pokemon: PokemonDetail) -> some View
+    {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Pokemon.stats, id: \.stat.name) { stat in
+                HStack {
+                    Text(stat.stat.name.capitalized)
+                        .frame(width: 70, alignment: .leading)
+                    Text("\(stat.baseStat)")
+                        .frame(width: 40, alignment: .trailing)
+                    ProgressView(value: Double(stat.baseStat), total: 100)
+                        .progressViewStyle(LinearProgressViewStyle(tint: statColor(for: stat.baseStat)))
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+    }
+        
+    private func evolutionChainView() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Evolution Chain")
+                .font(.headline)
+                .padding(.bottom, 2)
+            
+            if isLoadingEvolution {
+                HStack {
+                    Spacer()
+                    ProgressView("Loading evolution data...")
+                    Spacer()
+                }
+                .padding()
+            } else if let error = evolutionError {
+                VStack {
+                    Text("Couldn't load evolution data")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.top, 2)
+                    
+                    Button("Try Again") {
+                        Task {
+                            await loadEvolutionChain()
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                .padding()
+            } else if evolutionChain.isEmpty {
+                Text("No evolution data available")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 15) {
+                        ForEach(evolutionChain, id: \.uniqueId) { evolution in
+                            VStack {
+                                if let imageURL = evolution.imageURL,
+                                                                  let url = URL(string: imageURL)  {
+                                    AsyncImage(url: url) { phase in
+                                        if let image = phase.image {
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 70, height: 70)
+                                        } else {
+                                            Circle()
+                                                .fill(Color.gray.opacity(0.3))
+                                                .frame(width: 70, height: 70)
+                                        }
+                                    }
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 70, height: 70)
+                                }
+                                
+                                Text(evolution.name.capitalized)
+                                    .font(.caption)
+                                    .bold()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(
+                                pokemon?.id == evolution.id ?
+                                    Color.yellow.opacity(0.2) :
+                                    Color.gray.opacity(0.1)
+                            )
+                            .cornerRadius(12)
+
+                            if evolution.id != evolutionChain.last?.id {
+                                Image(systemName: "arrow.right")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
     }
     
     private func statColor(for value: Int) -> Color {
@@ -189,6 +308,22 @@ struct PokemonDetailView: View {
         
         isLoading = false
     }
+    
+    func loadEvolutionChain() async {
+        guard let pokemon = pokemon else { return }
+        
+        isLoadingEvolution = true
+        evolutionError = nil
+        
+        do {
+            evolutionChain = try await PokemonAPIService.shared.getEvolutionChain(for: pokemon.id)
+        } catch {
+            evolutionError = "Error: \(error.localizedDescription)"
+        }
+        
+        isLoadingEvolution = false
+    }
+    
 }
 
 #Preview {
