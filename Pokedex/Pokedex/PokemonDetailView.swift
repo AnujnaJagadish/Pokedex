@@ -9,7 +9,9 @@ import SwiftData
 
 struct PokemonDetailView: View {
     let pokemonId: Int
-    let viewModel: PokemonDetailViewModel
+    @ObservedObject private var viewModel: PokemonDetailViewModel
+    
+    @Query private var caughtPokemon: [CaughtPokemon]
     
     @State private var pokemon: PokemonDetail?
     @State private var isLoading = false
@@ -21,9 +23,22 @@ struct PokemonDetailView: View {
     @State private var showingCatchAlert = false
     @State private var showingFavoriteAlert = false
     
+    var isCaught: Bool {
+        guard let pokemon = pokemon else { return false }
+        return caughtPokemon.contains(where: { $0.id == pokemon.id })
+    }
+    
+    var isFavorite: Bool {
+        guard let pokemon = pokemon else { return false }
+        return caughtPokemon.contains(where: { $0.id == pokemon.id && $0.isFavorite })
+    }
+    
     init(pokemonId: Int) {
         self.pokemonId = pokemonId
         self.viewModel = PokemonDetailViewModel(pokemonId: pokemonId)
+        
+
+        self._caughtPokemon = Query()
     }
     
     var body: some View {
@@ -58,7 +73,7 @@ struct PokemonDetailView: View {
                                 }
                             }
                         }
-
+                        
                         Text(pokemon.name.capitalized)
                             .font(.title)
                             .bold()
@@ -79,7 +94,6 @@ struct PokemonDetailView: View {
                             }
                         }
                         
-
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Abilities")
                                 .font(.headline)
@@ -113,31 +127,47 @@ struct PokemonDetailView: View {
                         
                         HStack {
                             Button(action: {
-                                viewModel.catchPokemon(pokemon: pokemon)
-                                showingCatchAlert = true
+                                Task {
+                                    await PokemonDataManager.shared.catchPokemon(
+                                        id: pokemon.id,
+                                        name: pokemon.name,
+                                        types: pokemon.types.map { $0.type.name },
+                                        spriteURL: pokemon.sprites.frontDefault
+                                    )
+                                    showingCatchAlert = true
+                                }
                             }) {
-                                Text("Catch")
+                                Text(isCaught ? "Caught" : "Catch")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .padding(10)
                                     .frame(maxWidth: .infinity)
-                                    .background(Color.green)
+                                    .background(isCaught ? Color.gray : Color.green)
                                     .cornerRadius(12)
                             }
+                            .disabled(isCaught)
                             
                             Button(action: {
-                                viewModel.toggleFavorite(pokemon: pokemon)
-                                showingFavoriteAlert = true
+                                Task {
+                                    await PokemonDataManager.shared.toggleFavorite(
+                                        id: pokemon.id,
+                                        name: pokemon.name,
+                                        types: pokemon.types.map { $0.type.name },
+                                        spriteURL: pokemon.sprites.frontDefault,
+                                        isCaught: isCaught
+                                    )
+                                    showingFavoriteAlert = true
+                                }
                             }) {
                                 HStack {
-                                    Image(systemName: "star")
+                                    Image(systemName: isFavorite ? "star.fill" : "star")
                                     Text("Favorite")
                                 }
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .padding(10)
                                 .frame(maxWidth: .infinity)
-                                .background(Color.orange)
+                                .background(isFavorite ? Color.yellow : Color.orange)
                                 .cornerRadius(12)
                             }
                         }

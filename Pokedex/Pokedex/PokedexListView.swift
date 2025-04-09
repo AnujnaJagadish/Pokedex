@@ -4,7 +4,6 @@
 //
 //  Created by Anujna Ashwath on 4/2/25.
 //
-
 import SwiftUI
 import SwiftData
 
@@ -20,6 +19,7 @@ struct PokedexListView: View {
         "rock", "ghost", "dragon", "dark", "steel", "fairy"
     ]
     @State private var pokemonTypeCache: [Int: [String]] = [:]
+    @State private var pokemonSpriteCache: [Int: String] = [:]
     
     var filteredPokemon: [PokemonListItem] {
         var filtered = pokemonList
@@ -99,19 +99,34 @@ struct PokedexListView: View {
                     
                     List(filteredPokemon) { pokemon in
                         NavigationLink(destination: PokemonDetailView(pokemonId: pokemon.id)) {
-                                HStack {
-                                    Text("\(pokemon.id)")
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 35)
-                                    
-                                    Text(pokemon.name.capitalized)
-                                    
-                                    Spacer()
+                            HStack {
+                                if let spriteURL = pokemonSpriteCache[pokemon.id] {
+                                    AsyncImage(url: URL(string: spriteURL)) { phase in
+                                        if let image = phase.image {
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 40, height: 40)
+                                        } else {
+                                            Circle()
+                                                .fill(Color.gray.opacity(0.3))
+                                                .frame(width: 40, height: 40)
+                                        }
+                                    }
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 40, height: 40)
                                 }
+                                
+                                Text(pokemon.name.capitalized)
+                                
+                                Spacer()
+                            }
                         }
                         .task {
-                            if pokemonTypeCache[pokemon.id] == nil {
-                                await loadPokemonType(for: pokemon)
+                            if pokemonTypeCache[pokemon.id] == nil || pokemonSpriteCache[pokemon.id] == nil {
+                                await loadPokemonDetails(for: pokemon)
                             }
                         }
                     }
@@ -126,7 +141,6 @@ struct PokedexListView: View {
             }
         }
     }
-
     
     func loadPokemon() async {
         isLoading = true
@@ -138,38 +152,37 @@ struct PokedexListView: View {
             
             let initialBatch = pokemonList.prefix(5)
             for pokemon in initialBatch {
-                await loadPokemonType(for: pokemon)
+                await loadPokemonDetails(for: pokemon)
             }
         }
         catch let apiError as APIError {
-                errorMessage = apiError.customErrorMessage
-                print("Debug error: \(apiError)")
-            }
+            errorMessage = apiError.customErrorMessage
+            print("Debug error: \(apiError)")
+        }
         catch {
-                errorMessage = "Something unexpected happened. Please try again later."
-                print("Unexpected error: \(error)")
-            }
+            errorMessage = "Something unexpected happened. Please try again later."
+            print("Unexpected error: \(error)")
+        }
         
         isLoading = false
     }
     
-    func loadPokemonType(for pokemon: PokemonListItem) async {
-        if pokemonTypeCache[pokemon.id] != nil {
-            return
-        }
-        
+    func loadPokemonDetails(for pokemon: PokemonListItem) async {
         do {
             let details = try await PokemonAPIService.shared.fetchPokemonDetail(id: pokemon.id)
             let types = details.types.map { $0.type.name }
-            
             pokemonTypeCache[pokemon.id] = types
+            
+            if let spriteURL = details.sprites.frontDefault {
+                pokemonSpriteCache[pokemon.id] = spriteURL
+            }
         } catch {
-            print("Error loading type for \(pokemon.name): \(error)")
+            print("Error loading details for \(pokemon.name): \(error)")
         }
     }
 }
 
 #Preview {
-        PokedexListView()
-            .modelContainer(for: [CaughtPokemon.self], inMemory: true)
+    PokedexListView()
+        .modelContainer(for: [CaughtPokemon.self], inMemory: true)
 }

@@ -8,10 +8,8 @@
 import Foundation
 import SwiftData
 
-
 @Model
-class CaughtPokemon
-{
+class CaughtPokemon {
     var id: Int
     var name: String
     var types: [String]
@@ -25,19 +23,6 @@ class CaughtPokemon
         self.types = types
         self.spriteURL = spriteURL
         self.isFavorite = isFavorite
-        self.dateAdded = Date()
-    }
-}
-
-@Model
-class PokemonTeam {
-    var name: String
-    var pokemonIDs: [Int]
-    var dateCreated: Date
-    
-    init(name: String, pokemonIDs: [Int] = []) {
-        self.name = name
-        self.pokemonIDs = pokemonIDs
-        self.dateCreated = Date()
+        self.dateAdded = dateAdded
     }
 }

@@ -19,6 +19,14 @@ struct ContentView: View {
                 .tabItem {
                     Label("Pokédex", systemImage: "list.bullet")
                 }
+            CollectionView().tabItem {
+                Label("My Collection",
+                      systemImage: "folder.fill.badge.plus")
+            }
+            PokemonQuizView()
+                .tabItem {
+                    Label("Quiz", systemImage: "questionmark.circle.fill")
+                }
         }
     }
 }
