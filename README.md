@@ -28,3 +28,15 @@ retrieval
             ▪ "Favorite" button to mark as favorite
             ▪ "Catch" button to add to collection
             ▪ "Favorite" button to mark as favorite
+    • Tab3 - My Collection
+        ◦ Stack3A: List of caught Pokémon retrieved from Data stored
+            ▪ Searchable on name
+            ▪ Filterable by type
+            ▪ 2 Tabs - All and Favorites
+    • Tab3 - Quiz
+        ◦ Stack4A: Hardcoded set of Pokemon-related questions
+            ▪ Tracks the user's score throughout the quiz 
+            ▪ Shows a results screen with a message based on performance & allows re-take
+            
+
+
