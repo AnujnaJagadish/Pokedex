@@ -44,7 +44,8 @@ struct CollectionView: View {
                     contentView
                 }
             }
-            .navigationTitle("My Collection")
+            .navigationTitle("")
+            .navigationBarHidden(true)
             .task { await loadPokemon() }
             .refreshable { await loadPokemon() }
             .onChange(of: dataManager.lastUpdate) { _, _ in
@@ -57,6 +58,13 @@ struct CollectionView: View {
     
     private var contentView: some View {
         VStack {
+            Text("My Collection")
+                .font(.largeTitle)
+                .bold()
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical)
+
             if caughtPokemon.isEmpty {
                 emptyCollectionView
             } else {

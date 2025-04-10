@@ -42,106 +42,118 @@ struct PokedexListView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                if isLoading {
-                    ProgressView("Loading Pokémon...")
-                } else if let error = errorMessage {
-                    VStack {
-                        Text("Something went wrong")
-                            .font(.headline)
-                        Text("We couldn't load the Pokémon data. Please try again.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Button("Retry") {
-                            Task {
-                                await loadPokemon()
+            VStack(spacing: 0) {
+                Text("Pokédex")
+                    .font(.largeTitle)
+                    .bold()
+                    .padding(.top, 10)
+                    .padding(.bottom, 5)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+                
+                Divider()
+                
+                VStack {
+                    if isLoading {
+                        ProgressView("Loading Pokémon...")
+                    } else if let error = errorMessage {
+                        VStack {
+                            Text("Something went wrong")
+                                .font(.headline)
+                            Text("We couldn't load the Pokémon data. Please try again.")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Button("Retry") {
+                                Task {
+                                    await loadPokemon()
+                                }
                             }
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                         }
                         .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                    }
-                    .padding()
-                } else {
-                    HStack {
-                        Text("Filter by type:")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        Menu {
-                            Button("All Types") {
-                                typeFilter = nil
-                            }
+                    } else {
+                        HStack {
+                            Text("Filter by type:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                             
-                            Divider()
-                            
-                            ForEach(pokemonTypes.sorted(), id: \.self) { type in
-                                Button(type.capitalized) {
-                                    typeFilter = type
+                            Menu {
+                                Button("All Types") {
+                                    typeFilter = nil
                                 }
-                            }
-                        } label: {
-                            HStack {
-                                Text(typeFilter?.capitalized ?? "All")
-                                Image(systemName: "chevron.down")
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    
-                    List(filteredPokemon) { pokemon in
-                        NavigationLink(destination: PokemonDetailView(pokemonId: pokemon.id)) {
-                            HStack {
-                                if let spriteURL = pokemonSpriteCache[pokemon.id] {
-                                    AsyncImage(url: URL(string: spriteURL)) { phase in
-                                        if let image = phase.image {
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 40, height: 40)
-                                        } else {
-                                            Circle()
-                                                .fill(Color.gray.opacity(0.3))
-                                                .frame(width: 40, height: 40)
-                                        }
+                                
+                                Divider()
+                                
+                                ForEach(pokemonTypes.sorted(), id: \.self) { type in
+                                    Button(type.capitalized) {
+                                        typeFilter = type
                                     }
-                                } else {
-                                    Circle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(width: 40, height: 40)
                                 }
-                                
-                                Text(pokemon.name.capitalized)
-                                
-                                Spacer()
+                            } label: {
+                                HStack {
+                                    Text(typeFilter?.capitalized ?? "All")
+                                    Image(systemName: "chevron.down")
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.blue.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        
+                        List(filteredPokemon) { pokemon in
+                            NavigationLink(destination: PokemonDetailView(pokemonId: pokemon.id)) {
+                                HStack {
+                                    if let spriteURL = pokemonSpriteCache[pokemon.id] {
+                                        AsyncImage(url: URL(string: spriteURL)) { phase in
+                                            if let image = phase.image {
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 40, height: 40)
+                                            } else {
+                                                Circle()
+                                                    .fill(Color.gray.opacity(0.3))
+                                                    .frame(width: 40, height: 40)
+                                            }
+                                        }
+                                    } else {
+                                        Circle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 40, height: 40)
+                                    }
+                                    
+                                    Text(pokemon.name.capitalized)
+                                    
+                                    Spacer()
+                                }
+                            }
+                            .task {
+                                if pokemonTypeCache[pokemon.id] == nil || pokemonSpriteCache[pokemon.id] == nil {
+                                    await loadPokemonDetails(for: pokemon)
+                                }
                             }
                         }
-                        .task {
-                            if pokemonTypeCache[pokemon.id] == nil || pokemonSpriteCache[pokemon.id] == nil {
-                                await loadPokemonDetails(for: pokemon)
-                            }
-                        }
+                        .searchable(text: $searchText, prompt: "Search Pokémon")
                     }
-                    .searchable(text: $searchText, prompt: "Search Pokémon")
                 }
-            }
-            .navigationTitle("Pokédex")
-            .task {
-                if pokemonList.isEmpty {
-                    await loadPokemon()
+                .navigationTitle("")
+                .navigationBarHidden(true)
+                .task {
+                    if pokemonList.isEmpty {
+                        await loadPokemon()
+                    }
                 }
             }
         }
     }
-    
     func loadPokemon() async {
         isLoading = true
         errorMessage = nil

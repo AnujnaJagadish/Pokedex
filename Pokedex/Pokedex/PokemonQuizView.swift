@@ -89,37 +89,53 @@ struct PokemonQuizView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Pokémon Quiz")
+            .navigationTitle("")
+            .navigationBarHidden(true)
         }
     }
     
     private var startQuizView: some View {
-        VStack(spacing: 30) {
-            Image(systemName: "questionmark.circle")
-                .font(.system(size: 70))
-                .foregroundColor(.blue)
-            
-            Text("Test Your Pokémon Knowledge!")
-                .font(.title)
-                .bold()
-                .multilineTextAlignment(.center)
-            
-            Text("Answer 10 questions about Pokémon to see how much of a Pokémon Master you really are!")
-                .multilineTextAlignment(.center)
-                .padding()
-            
-            Button(action: startQuiz) {
-                Text("Start Quiz")
-                    .font(.headline)
-                    .foregroundColor(.white)
+        ScrollView {
+            VStack(spacing: 30) {
+                Text("Pokémon Quiz")
+                    .font(.largeTitle)
+                    .bold()
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom)
+
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 70))
+                    .foregroundColor(.blue)
+                
+                Text("Test Your Pokémon Knowledge!")
+                    .font(.title)
+                    .bold()
+                    .multilineTextAlignment(.center)
+                
+                Text("Answer 10 questions about Pokémon to see how much of a Pokémon Master you really are!")
+                    .multilineTextAlignment(.center)
                     .padding()
-                    .frame(width: 200)
-                    .background(Color.blue)
-                    .cornerRadius(10)
+
+                Button(action: startQuiz) {
+                    Text("Start Quiz")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(width: 200)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                }
+
+                Image("QuizPage")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 300, height: 200)
             }
+            .padding()
         }
-        .padding()
     }
+
     
     private func questionView(for question: QuizQuestion) -> some View {
         VStack(spacing: 20) {
@@ -251,6 +267,7 @@ struct PokemonQuizView: View {
                     .cornerRadius(10)
             }
         }
+        
         .padding()
     }
     
