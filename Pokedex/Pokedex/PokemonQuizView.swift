@@ -192,6 +192,7 @@ struct PokemonQuizView: View {
                 }
                 .padding(.top)
             }
+
         }
     }
     
@@ -240,6 +241,17 @@ struct PokemonQuizView: View {
                     .background(Color.blue)
                     .cornerRadius(10)
             }
+        Button(action: {
+                    showingResults = false
+                    currentQuestion = nil
+                }) {
+                    Text("Back to Home")
+                        .font(.subheadline)
+                        .padding()
+                        .frame(width: 200)
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(10)
+                }
         }
         .padding()
     }
