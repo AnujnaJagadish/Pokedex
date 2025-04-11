@@ -42,17 +42,6 @@ struct PokedexListView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Text("Pokédex")
-                    .font(.largeTitle)
-                    .bold()
-                    .padding(.top, 10)
-                    .padding(.bottom, 5)
-                    .frame(maxWidth: .infinity)
-                    .multilineTextAlignment(.center)
-                
-                Divider()
-                
                 VStack {
                     if isLoading {
                         ProgressView("Loading Pokémon...")
@@ -144,15 +133,13 @@ struct PokedexListView: View {
                         .searchable(text: $searchText, prompt: "Search Pokémon")
                     }
                 }
-                .navigationTitle("")
-                .navigationBarHidden(true)
+                .navigationTitle("Pokédex")
                 .task {
                     if pokemonList.isEmpty {
                         await loadPokemon()
                     }
                 }
             }
-        }
     }
     func loadPokemon() async {
         isLoading = true
