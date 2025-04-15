@@ -37,22 +37,25 @@ enum APIError: Error {
     }
 }
 
-class PokemonAPIService {
-    @MainActor static let shared = PokemonAPIService()
+class PokemonAPIService: @unchecked Sendable {
+    static let shared = PokemonAPIService()
     private let baseURL = "https://pokeapi.co/api/v2"
     
     private init() {}
     
+    @PokemonActor
     func fetchPokemonList(limit: Int = 20, offset: Int = 0) async throws -> PokemonListResponse {
         let endpoint = "/pokemon?limit=\(limit)&offset=\(offset)"
         return try await performRequest(endpoint: endpoint, responseType: PokemonListResponse.self)
     }
     
+    @PokemonActor
     func fetchPokemonDetail(id: Int) async throws -> PokemonDetail {
         let endpoint = "/pokemon/\(id)"
         return try await performRequest(endpoint: endpoint, responseType: PokemonDetail.self)
     }
     
+    @PokemonActor
     func fetchPokemonDetail(name: String) async throws -> PokemonDetail {
         let endpoint = "/pokemon/\(name.lowercased())"
         return try await performRequest(endpoint: endpoint, responseType: PokemonDetail.self)
@@ -81,14 +84,14 @@ class PokemonAPIService {
             throw APIError.networkError(error)
         }
     }
-}
 
-extension PokemonAPIService {
+    @PokemonActor
     func fetchPokemonSpecies(id: Int) async throws -> PokemonSpecies {
         let endpoint = "/pokemon-species/\(id)"
         return try await performRequest(endpoint: endpoint, responseType: PokemonSpecies.self)
     }
     
+    @PokemonActor
     func fetchEvolutionChain(url: String) async throws -> EvolutionChain {
         guard let url = URL(string: url) else {
             throw APIError.invalidURL
@@ -111,6 +114,7 @@ extension PokemonAPIService {
         }
     }
     
+    @PokemonActor
     func getEvolutionChain(for pokemonId: Int) async throws -> [PokemonEvolution] {
         let species = try await fetchPokemonSpecies(id: pokemonId)
         

@@ -6,11 +6,14 @@
 //
 import SwiftUI
 import SwiftData
+import Observation
 
+@MainActor
 struct PokemonDetailView: View {
     let pokemonId: Int
-    @ObservedObject private var viewModel: PokemonDetailViewModel
+    @State private var viewModel: PokemonDetailViewModel
     
+    @Environment(\.modelContext) private var modelContext
     @Query private var caughtPokemon: [CaughtPokemon]
     
     @State private var pokemon: PokemonDetail?
@@ -22,6 +25,8 @@ struct PokemonDetailView: View {
     @State private var evolutionError: String? = nil
     @State private var showingCatchAlert = false
     @State private var showingFavoriteAlert = false
+    @State private var favoriteAlertTitle = ""
+    @State private var favoriteAlertMessage = ""
     
     var isCaught: Bool {
         guard let pokemon = pokemon else { return false }
@@ -35,9 +40,7 @@ struct PokemonDetailView: View {
     
     init(pokemonId: Int) {
         self.pokemonId = pokemonId
-        self.viewModel = PokemonDetailViewModel(pokemonId: pokemonId)
-        
-
+        self._viewModel = State(initialValue: PokemonDetailViewModel(pokemonId: pokemonId))
         self._caughtPokemon = Query()
     }
     
@@ -128,12 +131,7 @@ struct PokemonDetailView: View {
                         HStack {
                             Button(action: {
                                 Task {
-                                    await PokemonDataManager.shared.catchPokemon(
-                                        id: pokemon.id,
-                                        name: pokemon.name,
-                                        types: pokemon.types.map { $0.type.name },
-                                        spriteURL: pokemon.sprites.frontDefault
-                                    )
+                                    catchPokemon()
                                     showingCatchAlert = true
                                 }
                             }) {
@@ -149,14 +147,7 @@ struct PokemonDetailView: View {
                             
                             Button(action: {
                                 Task {
-                                    await PokemonDataManager.shared.toggleFavorite(
-                                        id: pokemon.id,
-                                        name: pokemon.name,
-                                        types: pokemon.types.map { $0.type.name },
-                                        spriteURL: pokemon.sprites.frontDefault,
-                                        isCaught: isCaught
-                                    )
-                                    showingFavoriteAlert = true
+                                    toggleFavorite()
                                 }
                             }) {
                                 HStack {
@@ -167,9 +158,10 @@ struct PokemonDetailView: View {
                                 .foregroundColor(.white)
                                 .padding(10)
                                 .frame(maxWidth: .infinity)
-                                .background(isFavorite ? Color.yellow : Color.orange)
+                                .background(isFavorite ? Color.yellow : (isCaught ? Color.orange : Color.gray))
                                 .cornerRadius(12)
                             }
+                            .disabled(!isCaught)
                         }
                         .padding(.horizontal, 8)
                     }
@@ -190,10 +182,10 @@ struct PokemonDetailView: View {
         } message: {
             Text("You caught \(pokemon?.name.capitalized ?? "the Pokémon")! Check your collection to see it.")
         }
-        .alert("Added to Favorites", isPresented: $showingFavoriteAlert) {
+        .alert(favoriteAlertTitle, isPresented: $showingFavoriteAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("\(pokemon?.name.capitalized ?? "The Pokémon") has been added to your favorites!")
+            Text(favoriteAlertMessage)
         }
         .onChange(of: selectedTab) { oldValue, newValue in
             if newValue == 1 && evolutionChain.isEmpty && evolutionError == nil {
@@ -337,7 +329,7 @@ struct PokemonDetailView: View {
         
         isLoading = false
     }
-    
+
     private func loadEvolutionChain() async {
         guard let pokemon = pokemon else { return }
         
@@ -352,7 +344,45 @@ struct PokemonDetailView: View {
         
         isLoadingEvolution = false
     }
-}
+    
+    private func catchPokemon() {
+        guard let pokemon = pokemon else { return }
+        
+        let descriptor = FetchDescriptor<CaughtPokemon>(predicate: #Predicate { $0.id == pokemon.id })
+        if let _ = try? modelContext.fetch(descriptor).first {
+            return
+        }
+        
+        let newPokemon = CaughtPokemon(
+            id: pokemon.id,
+            name: pokemon.name,
+            types: pokemon.types.map { $0.type.name },
+            spriteURL: pokemon.sprites.frontDefault,
+            isFavorite: false,
+            dateAdded: Date()
+        )
+        modelContext.insert(newPokemon)
+        try? modelContext.save()
+    }
+    
+    private func toggleFavorite() {
+        guard let pokemon = pokemon else { return }
+        
+        let descriptor = FetchDescriptor<CaughtPokemon>(predicate: #Predicate { $0.id == pokemon.id })
+           if let existingPokemon = try? modelContext.fetch(descriptor).first {
+               let wasAlreadyFavorite = existingPokemon.isFavorite
+               existingPokemon.isFavorite.toggle()
+                      try? modelContext.save()
+                      showingFavoriteAlert = true
+               favoriteAlertTitle = wasAlreadyFavorite ? "Removed from Favorites" : "Added to Favorites"
+                      favoriteAlertMessage = wasAlreadyFavorite ?
+                          "\(pokemon.name.capitalized) has been removed from your favorites." :
+                          "\(pokemon.name.capitalized) has been added to your favorites!"
+           } else {
+               errorMessage = "You need to catch this Pokémon before you can favorite it."
+                   }
+            }
+    }
 
 #Preview {
     NavigationStack {

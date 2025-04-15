@@ -8,14 +8,15 @@ import SwiftUI
 import SwiftData
 
 struct CollectionView: View {
-    @State private var caughtPokemon: [CaughtPokemon] = []
+    @Environment(\.modelContext) private var modelContext
+    @Query private var caughtPokemon: [CaughtPokemon]
+    @Query(sort: \PokemonTeam.dateCreated, order: .reverse, animation: .default)
+    private var teams: [PokemonTeam]
+    
     @State private var searchText = ""
     @State private var selectedTab = 0
     @State private var typeFilter: String? = nil
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    
-    @StateObject private var dataManager = PokemonDataManager.shared
+    @State private var showingNewTeamSheet = false
     
     var filteredPokemon: [CaughtPokemon] {
         var filtered = searchText.isEmpty ? caughtPokemon : caughtPokemon.filter {
@@ -35,55 +36,115 @@ struct CollectionView: View {
     
     var body: some View {
         NavigationStack {
-            Group {
-                if isLoading {
-                    ProgressView()
-                } else if let error = errorMessage {
-                    Text("Error: \(error)")
-                } else {
-                    contentView
+            contentView
+            .navigationTitle("My Collection")
+            .refreshable {
+            }
+            .toolbar {
+                if selectedTab == 2 {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            showingNewTeamSheet = true
+                        }) {
+                            Image(systemName: "plus")
+                        }
+                    }
                 }
             }
-            .navigationTitle("My Collection")
-            .task { await loadPokemon() }
-            .refreshable { await loadPokemon() }
-            .onChange(of: dataManager.lastUpdate) { _, _ in
-                Task {
-                    await loadPokemon()
-                }
+            .sheet(isPresented: $showingNewTeamSheet) {
+                CreateTeamView(caughtPokemon: Array(caughtPokemon))
             }
         }
     }
     
     private var contentView: some View {
         VStack {
-            if caughtPokemon.isEmpty {
+            if caughtPokemon.isEmpty && selectedTab != 2 {
                 emptyCollectionView
             } else {
                 Picker("View", selection: $selectedTab) {
-                    Text("All").tag(0)
+                    Text("Caught").tag(0)
                     Text("Favorites").tag(1)
+                    Text("Teams").tag(2)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 
-                typeFilterView
-                pokemonListView
+                if selectedTab == 2 {
+                    teamsView
+                } else {
+                    typeFilterView
+                    pokemonListView
+                }
             }
         }
     }
     
-    private func loadPokemon() async {
-        isLoading = true
-        errorMessage = nil
-        do {
-            caughtPokemon = await dataManager.getCaughtPokemon()
-            print("Loaded \(caughtPokemon.count) Pokémon")
-        } catch {
-            errorMessage = error.localizedDescription
-            print("Error loading Pokémon: \(error)")
+    private var filteredTeams: [PokemonTeam] {
+            searchText.isEmpty ? teams : teams.filter { team in
+                team.name.localizedCaseInsensitiveContains(searchText)
+            }
         }
-        isLoading = false
+        
+        private var teamsView: some View {
+            VStack {
+                Text("Teams: \(teams.map { $0.name }.joined(separator: ", "))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if teams.isEmpty {
+                    VStack(spacing: 20) {
+                        Text("No Teams Created")
+                            .font(.title2)
+                        
+                        Text("Create a team to organize your Pokémon and analyze their strengths and weaknesses.")
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                        
+                        Button(action: {
+                            showingNewTeamSheet = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Create New Team")
+                            }
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                        }
+                    }
+                    .padding()
+                } else {
+                    List {
+                        ForEach(filteredTeams) { team in
+                            NavigationLink {
+                                TeamDetailView(team: team, caughtPokemon: Array(caughtPokemon))
+                            } label: {
+                                TeamRowView(team: team, caughtPokemon: Array(caughtPokemon))
+                            }
+                            .swipeActions(edge: .trailing) {
+                                       Button(role: .destructive) {
+                                           deleteTeam(team)
+                                       } label: {
+                                           Label("Delete", systemImage: "trash")
+                                       }
+                            }
+                        }
+                    }
+                    .searchable(text: $searchText, prompt: "Search teams")
+                    Button("Refresh Teams") {
+                        try? modelContext.save()
+                    }
+                    .padding()
+                }
+            }
+        }
+    
+    private func deleteTeam(_ team: PokemonTeam) {
+        modelContext.delete(team)
+        try? modelContext.save()
     }
     
     private var emptyCollectionView: some View {
@@ -144,20 +205,20 @@ struct CollectionView: View {
     private var pokemonListView: some View {
         List {
             ForEach(filteredPokemon) { pokemon in
-                pokemonRow(for: pokemon)
+                NavigationLink {
+                               PokemonDetailView(pokemonId: pokemon.id)
+                           } label: {
+                               pokemonRow(for: pokemon)
+                           }
                     .swipeActions {
                         Button(role: .destructive) {
-                            Task {
-                                await deletePokemon(pokemon)
-                            }
+                            deletePokemon(pokemon)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                         
                         Button {
-                            Task {
-                                await toggleFavorite(pokemon: pokemon)
-                            }
+                            toggleFavorite(pokemon: pokemon)
                         } label: {
                             Label(pokemon.isFavorite ? "Unfavorite" : "Favorite",
                                   systemImage: pokemon.isFavorite ? "star.slash" : "star")
@@ -207,25 +268,82 @@ struct CollectionView: View {
         }
     }
     
-    private func deletePokemon(_ pokemon: CaughtPokemon) async {
-        await dataManager.deletePokemon(pokemon)
-        await loadPokemon()
+    private func deletePokemon(_ pokemon: CaughtPokemon) {
+        modelContext.delete(pokemon)
+        try? modelContext.save()
     }
     
-    private func toggleFavorite(pokemon: CaughtPokemon) async {
-        await dataManager.toggleFavorite(
-            id: pokemon.id,
-            name: pokemon.name,
-            types: pokemon.types,
-            spriteURL: pokemon.spriteURL,
-            isCaught: true
-        )
-        await loadPokemon()
+    private func toggleFavorite(pokemon: CaughtPokemon) {
+        pokemon.isFavorite.toggle()
+        try? modelContext.save()
     }
 }
 
+struct TeamRowView: View {
+    let team: PokemonTeam
+    let caughtPokemon: [CaughtPokemon]
+    
+    var teamPokemon: [CaughtPokemon] {
+        caughtPokemon.filter { team.pokemonIDs.contains($0.id) }
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(team.name)
+                    .font(.headline)
+                
+                Text("\(team.pokemonIDs.count) Pokémon")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: -10) {
+                ForEach(Array(teamPokemon.prefix(3).enumerated()), id: \.element.id) { index, pokemon in
+                    if let spriteURL = pokemon.spriteURL, let url = URL(string: spriteURL) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 35, height: 35)
+                                    .background(Circle().fill(Color.white))
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                            } else {
+                                Circle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 35, height: 35)
+                            }
+                        }
+                    } else {
+                        Circle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(width: 35, height: 35)
+                    }
+                }
+                
+                if team.pokemonIDs.count > 3 {
+                    Circle()
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 35, height: 35)
+                        .overlay(
+                            Text("+\(team.pokemonIDs.count - 3)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        )
+                }
+            }
+        }
+    }
+
+}
+
 #Preview {
-    CollectionView()
-        .modelContainer(for: [CaughtPokemon.self], inMemory: true)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: CaughtPokemon.self, PokemonTeam.self)
+    return CollectionView().modelContainer(container)
 }
 

@@ -1,10 +1,9 @@
 //
-//  PokemonModel.swift
+//  PokemonAPIModels.swift
 //  Pokedex
 //
-//  Created by Anujna Ashwath on 4/1/25.
+//  Created by Anujna Ashwath on 4/14/25.
 //
-
 import Foundation
 
 struct PokemonListResponse: Codable {
@@ -122,9 +121,7 @@ struct PokemonEvolution: Identifiable {
     let name: String
     let imageURL: String?
     let level: Int
-
     var uniqueId: String {
         "\(id)-\(name)"
     }
 }
-
