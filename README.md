@@ -35,7 +35,7 @@ retrieval
         ◦ Stack3B: Create Teams
             ▪ Display created teams
             ▪ Allow adding/deleting Pokémon from teams
-            ▪  Show team type effectiveness analysis
+            ▪ Show team type effectiveness analysis
     • Tab3 - Quiz
         ◦ Stack4A: Hardcoded set of Pokemon-related questions
             ▪ Tracks the user's score throughout the quiz 
