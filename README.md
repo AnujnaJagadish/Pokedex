@@ -12,7 +12,6 @@ retrieval
 
 ### API: https://pokeapi.co/api
 ### UI: 
-    So far:
     • Tab1 - Home Dashboard
         ◦ Quick access buttons to main app functions
     • Tab2 - Pokédex
@@ -32,7 +31,11 @@ retrieval
         ◦ Stack3A: List of caught Pokémon retrieved from Data stored
             ▪ Searchable on name
             ▪ Filterable by type
-            ▪ 2 Tabs - All and Favorites
+            ▪ 3 Tabs - All , Favorites and Teams Management
+        ◦ Stack3B: Create Teams
+            ▪ Display created teams
+            ▪ Allow adding/deleting Pokémon from teams
+            ▪  Show team type effectiveness analysis
     • Tab3 - Quiz
         ◦ Stack4A: Hardcoded set of Pokemon-related questions
             ▪ Tracks the user's score throughout the quiz 
