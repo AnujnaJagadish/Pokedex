@@ -33,5 +33,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [CaughtPokemon.self], inMemory: true)
+        .modelContainer(for: [CaughtPokemon.self, PokemonTeam.self], inMemory: true)
 }

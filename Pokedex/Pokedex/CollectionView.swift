@@ -342,8 +342,24 @@ struct TeamRowView: View {
 }
 
 #Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: CaughtPokemon.self, PokemonTeam.self)
-    return CollectionView().modelContainer(container)
+    let container = try! ModelContainer(
+        for: CaughtPokemon.self, PokemonTeam.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    let context = container.mainContext
+    let previewTeam1 = PokemonTeam(name: "Indigo Team")
+    let previewTeam2 = PokemonTeam(name: "Jhoto Four")
+    
+    do {
+        context.insert(previewTeam1)
+        context.insert(previewTeam2)
+        try context.save()
+    } catch {
+        print("Error inserting preview teams: \(error)")
+    }
+    
+    return CollectionView()
+        .modelContainer(container)
 }
 

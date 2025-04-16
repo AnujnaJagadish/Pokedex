@@ -46,6 +46,6 @@ struct HomeView: View
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: [CaughtPokemon.self], inMemory: true)
+    HomeView()
+        .modelContainer(for: [CaughtPokemon.self, PokemonTeam.self], inMemory: true)
 }
