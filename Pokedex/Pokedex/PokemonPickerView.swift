@@ -110,15 +110,7 @@ struct PokemonPickerView: View {
 }
 
 #Preview {
-    let container = try! ModelContainer(
-        for: CaughtPokemon.self, PokemonTeam.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-    
-    let context = container.mainContext
-    let previewTeam = PokemonTeam(name: "Test Team")
-    context.insert(previewTeam)
-    
-    return PokemonPickerView(team: previewTeam, caughtPokemon: [])
-        .modelContainer(container)
-}
+     let previewTeam = PokemonTeam(name: "Test Team")
+     return PokemonPickerView(team: previewTeam, caughtPokemon: [])
+         .modelContainer(for: [CaughtPokemon.self, PokemonTeam.self], inMemory: true)
+ }

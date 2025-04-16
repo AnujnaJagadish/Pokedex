@@ -118,41 +118,6 @@ struct CreateTeamView: View {
 }
 
 #Preview {
-    let container = try! ModelContainer(
-        for: CaughtPokemon.self, PokemonTeam.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-    
-    let context = container.mainContext
-    let samplePokemon = [
-        CaughtPokemon(
-            id: 1,
-            name: "Pikachu",
-            types: ["Electric"],
-            spriteURL: nil,
-            isFavorite: false,
-            dateAdded: Date()
-        ),
-        CaughtPokemon(
-            id: 2,
-            name: "Charmander",
-            types: ["Fire"],
-            spriteURL: nil,
-            isFavorite: false,
-            dateAdded: Date()
-        ),
-        CaughtPokemon(
-            id: 3,
-            name: "Squirtle",
-            types: ["Water"],
-            spriteURL: nil,
-            isFavorite: false,
-            dateAdded: Date()
-        )
-    ]
-    
-    samplePokemon.forEach { context.insert($0) }
-    
-    return CreateTeamView(caughtPokemon: samplePokemon)
-        .modelContainer(container)
-}
+    CreateTeamView(caughtPokemon: [])
+        .modelContainer(for: [CaughtPokemon.self, PokemonTeam.self], inMemory: true)
+ }

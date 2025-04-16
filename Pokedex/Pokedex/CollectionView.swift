@@ -270,7 +270,18 @@ struct CollectionView: View {
     
     private func deletePokemon(_ pokemon: CaughtPokemon) {
         modelContext.delete(pokemon)
+        do {
+               let teamDescriptor = FetchDescriptor<PokemonTeam>()
+               let teams = try modelContext.fetch(teamDescriptor)
+
+               for team in teams {
+                   team.pokemonIDs.removeAll { $0 == pokemon.id }
+               }
+               
         try? modelContext.save()
+        } catch {
+               print("Error cleaning up teams after deleting Pokemon: \(error)")
+           }
     }
     
     private func toggleFavorite(pokemon: CaughtPokemon) {
